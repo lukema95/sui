@@ -152,7 +152,9 @@ impl ConsensusManager {
     }
 
     // Picks the consensus protocol based on the protocol config and the epoch.
-    fn pick_protocol(&self, epoch_store: &AuthorityPerEpochStore) -> ConsensusProtocol {
+    pub fn get_consensus_protocol_in_epoch(
+        epoch_store: &AuthorityPerEpochStore,
+    ) -> ConsensusProtocol {
         let protocol_config = epoch_store.protocol_config();
         if protocol_config.version >= ProtocolVersion::new(36) {
             if let Ok(consensus_choice) = std::env::var("CONSENSUS") {
@@ -205,7 +207,7 @@ impl ConsensusManagerTrait for ConsensusManager {
                     "Cannot start consensus. ConsensusManager protocol {index} is already running"
                 );
             });
-            let protocol = self.pick_protocol(&epoch_store);
+            let protocol = Self::get_consensus_protocol_in_epoch(&epoch_store);
             info!("Starting consensus protocol {protocol:?} ...");
             match protocol {
                 ConsensusProtocol::Narwhal => {
@@ -300,11 +302,11 @@ impl ConsensusClient {
 impl SubmitToConsensus for ConsensusClient {
     async fn submit_to_consensus(
         &self,
-        transaction: &ConsensusTransaction,
+        transactions: &[ConsensusTransaction],
         epoch_store: &Arc<AuthorityPerEpochStore>,
     ) -> SuiResult {
         let client = self.get().await;
-        client.submit_to_consensus(transaction, epoch_store).await
+        client.submit_to_consensus(transactions, epoch_store).await
     }
 }
 
